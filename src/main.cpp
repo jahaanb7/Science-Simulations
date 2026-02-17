@@ -8,6 +8,8 @@
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
+const float speed = 20.0f;
+
 void drawParticle(const Particle& p, int numSegments) {
 
     glBegin(GL_LINE_LOOP);
@@ -48,22 +50,36 @@ int main(void)
 
     glLoadIdentity();
 
-    glOrtho(0, WIDTH, 0, HEIGHT, -1, 1);  // Left, Right, Bottom, Top
+    glOrtho(0, WIDTH, 0, HEIGHT, -1, 1);
 
     glMatrixMode(GL_MODELVIEW);
 
     glLoadIdentity();
 
     glm::vec2 ParticlePosition(400.0f, 300.0f);
-    glm::vec2 ParticleVelocity = glm::vec2(30.0f, 0.0f);
+    glm::vec2 ParticleVelocity = glm::vec2(30.0f, 10.0f);
 
-    Particle particle(ParticlePosition, ParticleVelocity, 1.0f, 50.0f);
+    Particle particle(ParticlePosition, ParticleVelocity, 1.0f, 30.0f);
 
     float deltaTime = 0.0167f;
 
     while (!glfwWindowShouldClose(window))
     {
         glClear(GL_COLOR_BUFFER_BIT);
+
+        double xpos; 
+        double ypos;
+
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+        glfwGetCursorPos(window, &xpos, &ypos);
+
+        float xPosMouse = static_cast<float>(xpos);
+        float yPosMouse = HEIGHT - static_cast<float>(ypos);
+
+        glm::vec2 mousePos(xPosMouse, yPosMouse);
+        glm::vec2 direction = mousePos - particle.position;
+
+        particle.velocity = direction * speed;
 
         drawParticle(particle, 50);
 
