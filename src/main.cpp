@@ -3,26 +3,88 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp> 
 #include <glm/gtc/constants.hpp>
-#include "../include/particle.h"
 
+// screen size vars
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const float speed = 20.0f;
+bool mouseMode = false; 
 
-void drawParticle(const Particle& p, int numSegments) {
+struct Particle{
+  public:
+    glm::vec2 position; // 2D position vector (x,y)
+    glm::vec2 velocity; // magnitude and direction
 
-    glBegin(GL_LINE_LOOP);
-    for(int i = 0; i < numSegments; i++){
+    // additional vars
+    float mass;
+    float radius;
+    float charge;
 
-        float theta = 2.0f * glm::pi<float>() * float(i) / float(numSegments);
+    Particle(glm::vec2 pos, glm::vec2 vel, float m, float r)
+      : position(pos), velocity(vel), mass(m), radius(r){}
 
-        float x = p.radius * cos(theta);
-        float y = p.radius * sin(theta);
-
-        glVertex2f(x + p.position.x, y + p.position.y);
+    void updatePosition(float deltaTime) {
+      position += velocity * deltaTime;
     }
-    glEnd();
+
+    void drawParticle(const Particle& p, int numSegments) {
+        glBegin(GL_TRIANGLE_FAN);
+        for(int i = 0; i < numSegments; i++){
+
+            float theta = 2.0f * glm::pi<float>() * float(i) / float(numSegments);
+
+            float x = p.radius * cos(theta);
+            float y = p.radius * sin(theta);
+
+            glVertex2f(x + p.position.x, y + p.position.y);
+        }
+        glEnd();
+    }
+};
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height){
+    glViewport(0, 0, width, height);
+}
+
+Particle mouseMovement(GLFWwindow* window, Particle& particle){
+    double xpos; 
+    double ypos;
+
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwGetCursorPos(window, &xpos, &ypos);
+
+    float xPosMouse = static_cast<float>(xpos);
+    float yPosMouse = HEIGHT - static_cast<float>(ypos);
+
+    glm::vec2 mousePos(xPosMouse, yPosMouse);
+    glm::vec2 direction = mousePos - particle.position;
+
+    particle.velocity = direction * particle.velocity;
+
+    return particle;
+}
+
+void boundingBoundary(Particle& particle){
+
+    if(particle.position.x + particle.radius > WIDTH){
+        particle.position.x = WIDTH - particle.radius;
+        particle.velocity.x *= -1.0f;
+    }
+
+    else if(particle.position.x - particle.radius < 0){
+        particle.position.x = particle.radius;
+        particle.velocity.x *= -1.0f;
+    }
+
+    else if(particle.position.y + particle.radius > HEIGHT){
+        particle.position.y = HEIGHT - particle.radius;
+        particle.velocity.y *= -1.0f;
+    }
+
+    else if(particle.position.y - particle.radius < 0){
+        particle.position.y = particle.radius;
+        particle.velocity.y *= -1.0f;
+    }
 }
 
 int main(void)
@@ -44,22 +106,24 @@ int main(void)
         return -1;
     }
 
-    glViewport(0, 0, WIDTH, HEIGHT);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     glMatrixMode(GL_PROJECTION);
-
     glLoadIdentity();
-
     glOrtho(0, WIDTH, 0, HEIGHT, -1, 1);
-
     glMatrixMode(GL_MODELVIEW);
-
     glLoadIdentity();
 
-    glm::vec2 ParticlePosition(400.0f, 300.0f);
-    glm::vec2 ParticleVelocity = glm::vec2(30.0f, 10.0f);
+    //initialize Particle
+    glm::vec2 position(400.0f, 300.0f);
 
-    Particle particle(ParticlePosition, ParticleVelocity, 1.0f, 30.0f);
+    const float magnitude = 0.0f;
+    const float direction = 0.0f;
+
+    const float mass = 10.0f;
+    const float radius = 20.0f;
+
+    Particle particle(position, glm::vec2(magnitude, direction), mass, radius);
 
     float deltaTime = 0.0167f;
 
@@ -67,23 +131,15 @@ int main(void)
     {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        double xpos; 
-        double ypos;
+        if(mouseMode){
+            mouseMovement(window, particle);
+        }
 
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-        glfwGetCursorPos(window, &xpos, &ypos);
+        boundingBoundary(particle);
 
-        float xPosMouse = static_cast<float>(xpos);
-        float yPosMouse = HEIGHT - static_cast<float>(ypos);
+        particle.drawParticle(particle, 50);
 
-        glm::vec2 mousePos(xPosMouse, yPosMouse);
-        glm::vec2 direction = mousePos - particle.position;
-
-        particle.velocity = direction * speed;
-
-        drawParticle(particle, 50);
-
-        particle.update(deltaTime);
+        particle.updatePosition(deltaTime);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
