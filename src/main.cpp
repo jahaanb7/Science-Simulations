@@ -4,18 +4,27 @@
 #include <glm/glm.hpp> 
 #include <glm/gtc/constants.hpp>
 #include "library/Particle.h"
+#include "library/Particle3D.h"
 #include <vector>
 #include <cmath>
-#include <stdio.h>
-#include <unistd.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <cstdlib>
 
 // screen size vars
 const float WIDTH = 800.0f;
 const float HEIGHT = 600.0f;
 
-float delayBetweenParticles = 0.1f;
+float elapsedTime = 0.0f;
+int fps = 60;
+float deltaTime = 0.0167;
+
+float TimeDelay = 0.5f;
 
 bool mouseMode = false; 
+
+std::vector<Particle3D> particles;
+std::vector<float> spawnTimes;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height){
     glViewport(0, 0, width, height);
@@ -39,35 +48,54 @@ Particle mouseMovement(GLFWwindow* window, Particle& particle){
     return particle;
 }
 
-void boundingBoundary(Particle& particle){
+void drawBoundaryBox(float width, float height, float depth) {
+    float x = width / 2.0f;
+    float y = height / 2.0f;
+    float z = depth; // 400.0f
 
-    if(particle.position.x + particle.radius > WIDTH){
-        particle.position.x = WIDTH - particle.radius;
-        particle.velocity.x *= -1.0f;
-    }
+    glDisable(GL_LIGHTING);
+    glColor3f(255.0f,255.0f, 255.0f); // light blue wireframe
 
-    if(particle.position.x - particle.radius < 0){
-        particle.position.x = particle.radius;
-        particle.velocity.x *= -1.0f;
-    }
+    glBegin(GL_LINES);
 
-    if(particle.position.y + particle.radius > HEIGHT){
-        particle.position.y = HEIGHT - particle.radius;
-        particle.velocity.y *= -1.0f;
-    }
+    // Bottom face
+    glVertex3f(-x, -y, -z); glVertex3f( x, -y, -z);
+    glVertex3f( x, -y, -z); glVertex3f( x,  y, -z);
+    glVertex3f( x,  y, -z); glVertex3f(-x,  y, -z);
+    glVertex3f(-x,  y, -z); glVertex3f(-x, -y, -z);
 
-    if(particle.position.y - particle.radius < 0){
-        particle.position.y = particle.radius;
-        particle.velocity.y *= -1.0f;
+    // Top face
+    glVertex3f(-x, -y,  z); glVertex3f( x, -y,  z);
+    glVertex3f( x, -y,  z); glVertex3f( x,  y,  z);
+    glVertex3f( x,  y,  z); glVertex3f(-x,  y,  z);
+    glVertex3f(-x,  y,  z); glVertex3f(-x, -y,  z);
+
+    // Connecting edges
+    glVertex3f(-x, -y, -z); glVertex3f(-x, -y,  z);
+    glVertex3f( x, -y, -z); glVertex3f( x, -y,  z);
+    glVertex3f( x,  y, -z); glVertex3f( x,  y,  z);
+    glVertex3f(-x,  y, -z); glVertex3f(-x,  y,  z);
+
+    glEnd();
+
+    glEnable(GL_LIGHTING);
+}
+
+void drawParticleArray2D(std::vector<Particle>& particles, float deltaTime){
+    for(auto& p : particles) {        
+        p.updatePosition(deltaTime);
+        p.boundingBoundary(WIDTH, HEIGHT);
+        p.drawParticle();
     }
 }
 
-void drawParticleArray(std::vector<Particle>& particles, float deltaTime, float TimeDelay){
-
-    for(auto& p : particles) {        
-        p.updatePosition(deltaTime);
-        boundingBoundary(p);
-        p.drawParticle();
+void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
+    for(int i = 0; i < particles.size(); i++){
+        if(elapsedTime >= spawnTimes[i]){
+            particles[i].updatePosition3D(deltaTime);
+            particles[i].boundingBoundary3D(WIDTH, HEIGHT);
+            particles[i].drawParticle3D(10,10);
+        }
     }
 }
 
@@ -92,53 +120,56 @@ int main(void)
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, WIDTH, 0, HEIGHT, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    glEnable(GL_DEPTH_TEST);
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
 
     //initialize Particle
-    glm::vec2 position(400.0f, 20.0f);
+    glm::vec3 position(400.0f, 300.0f, 200.0f);
 
     const float magnitude = 400.0f;
-    const float angleDegree = 260.0f;
-    const float angleRadians = glm::radians(angleDegree);
 
-    float directionX = magnitude*(cos(angleRadians));
-    float directionY = magnitude*(sin(angleRadians));
+    const float anglePhi = glm::radians(10.0f);
+    const float angleTheta = glm::radians(210.0f);
 
-    glm::vec2 velocity = glm::vec2(directionX, directionY);
+    float directionX = magnitude*(cos(anglePhi)*cos(angleTheta));
+    float directionY = magnitude*(sin(anglePhi)*sin(angleTheta));
+    float directionZ = magnitude*(sin(angleTheta));
+
+    glm::vec3 velocity = glm::vec3(directionX, directionY, directionZ);
 
     const float mass = 300.0f;
     const float radius = 10.0f;
     int numParticles = 5;
 
-    std::vector<Particle> particles;
-    std::vector<float> spawnTimes;
-
     for(int i = 0; i < numParticles; i++){
         particles.emplace_back(position, velocity, mass, radius);
-        spawnTimes.push_back(i * delayBetweenParticles); // each particle spawns after 0.1s
+        spawnTimes.push_back(i * TimeDelay); // each particle spawns after 0.1s
     }
-    
-    float elapsedTime = 0.0f;
-    float deltaTime = 0.0167f;
 
     while (!glfwWindowShouldClose(window))
     {
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        glm::vec3 cameraPos(800.0f , 300.0f, 1000.0f);
+        glm::vec3 cameraTarget(0.0f,0.0f,0.0f);
+        glm::vec3 cameraUp(0.0f,1.0f,0.0f);
+
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), WIDTH / HEIGHT, 0.1f, 2000.0f);
+        glm::mat4 view = glm::lookAt(cameraPos, cameraTarget, cameraUp);
+        glm::mat4 viewProjection = projection * view;
+
+        glMatrixMode(GL_MODELVIEW);
+        glLoadMatrixf(glm::value_ptr(viewProjection));
+
+        GLfloat lightPos[] = { 800.0f, 200.0f, 200.0f, 1.0f }; // positional light
+        glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
+
+        // Update
         elapsedTime += deltaTime;
-
-        for(int i = 0; i < particles.size(); i++){
-            if(elapsedTime >= spawnTimes[i]){
-                glm::vec2 gravityAcceleration = particles[i].setGravityAcceleration(500,100,glm::vec2(WIDTH/2, 0));
-                particles[i].updatePosition(deltaTime);
-                boundingBoundary(particles[i]);
-                particles[i].drawParticle();
-            }
-        }
+        drawParticleArray3D(particles, deltaTime);
+        drawBoundaryBox(WIDTH, HEIGHT, 400.0f);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

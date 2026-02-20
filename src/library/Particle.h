@@ -52,4 +52,26 @@ class Particle{
         }
         glEnd();
     }
+
+    void boundingBoundary(int WIDTH, int HEIGHT){
+        if(position.x + radius > WIDTH){
+            position.x = WIDTH - radius;
+            velocity.x *= -1.0f;
+        }
+
+        if(position.x - radius < 0){
+            position.x = radius;
+            velocity.x *= -1.0f;
+        }
+
+        if(position.y + radius > HEIGHT){
+            position.y = HEIGHT - radius;
+            velocity.y *= -1.0f;
+        }
+
+        if(position.y - radius < 0){
+            position.y = radius;
+            velocity.y *= -1.0f;
+        }
+    }
 };
