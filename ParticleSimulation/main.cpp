@@ -32,11 +32,9 @@ Current Functionality:
 const float WIDTH = 800.0f;
 const float HEIGHT = 600.0f;
 
-const glm::vec3 center = glm::vec3(WIDTH/2.0f, HEIGHT/2.0f, 200.0f);
-
 // Frame Timing, and delay in particle drawing
 float elapsedTime = 0.0f;
-float deltaTime = 0.0167;
+double lastFrame = 0.0f; 
 float TimeDelay = 0.5f;
 
 // Array of Particles and spawnTime (float)
@@ -206,6 +204,10 @@ int main(void)
 
     while (!glfwWindowShouldClose(window))
     {
+        double currentTime = glfwGetTime();
+        double deltaTime = currentTime - lastFrame;
+        lastFrame = currentTime;
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Perspective Projection (Perspective Matrix)
@@ -216,25 +218,22 @@ int main(void)
         glLoadMatrixf(glm::value_ptr(projection));
 
         // View pipeline (Camera, ViewModel Matrix)
-        const float radius = 10.0f;
-        float camX = sin(deltaTime) * radius;
-        float camZ = cos(deltaTime) * radius;
+        const float radius = 900.0f;
+        float camX = sin(currentTime) * radius;
+        float camZ = cos(currentTime) * radius;
 
-        glm::vec3 camPosition = glm::vec3(center.x * camX, center.y, 800.0f * camZ);
-        glm::vec3 camDirection = glm::normalize(camPosition - center);
+        glm::vec3 camPosition = glm::vec3(camX, 0.0f, camZ);
+        glm::vec3 camTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-        glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f); 
-        glm::vec3 cameraRight = glm::normalize(glm::cross(up, camDirection));
-        glm::vec3 cameraUp = glm::cross(camDirection, cameraRight);
-
-        glm::mat4 view = glm::lookAt(camPosition, center, cameraUp);
+        glm::mat4 view = glm::lookAt(camPosition, camTarget, up);
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glLoadMatrixf(glm::value_ptr(view));
 
         // set light as positional and set (x,y,z) coordinates
-        GLfloat light[] = {400.0f, 300.0f, 200.0f, 1.0f};
+        GLfloat light[] = {camPosition.x, camPosition.y, camPosition.z, 1.0f};
         glLightfv(GL_LIGHT0, GL_POSITION, light);
 
         // Update
@@ -257,7 +256,6 @@ int main(void)
         glfwPollEvents();
     }
 
-    glfwTerminate();
     return 0;
 }
 
