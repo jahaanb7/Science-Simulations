@@ -1,50 +1,77 @@
 #include <glm/glm.hpp>
+#include <cmath>
 
 class Quaternion{
   public:
-    float iHat, jHat, kHat;
-    float realNum;
+    float w, x, y, z;
 
-    glm::vec3 vectorQ = glm::vec3(iHat, jHat, kHat);
+    Quaternion(float w1=1.0f, float x1=0.0f, float y1=0.0f, float z1=0.0f)
+        : w(w1), x(x1), y(y1), z(z1){}
 
-  Quaternion(float w,float x, float y, float z){
-    iHat = x;
-    jHat = y;
-    kHat = z;
-    realNum = w;
-  }
+    Quaternion convertVector(glm::vec3 position, float w){
+      x = position.x;
+      y = position.y;
+      z = position.z;
+      w = w;
 
-  Quaternion(glm::vec3 position, float w){
-    iHat = position.x;
-    jHat = position.y;
-    kHat = position.z;
-    realNum = w;
-  }
+      return Quaternion(x,y,z,w);
+    }
 
-  Quaternion inverse(){
-    double magnitude = (realNum * realNum) + (iHat*iHat) + (jHat*jHat) + (kHat*kHat);
+    Quaternion inverse(){
+      float magnitude = (w * w) + (x*x) + (y*y) + (z*z);
 
-    return Quaternion(realNum, -iHat/magnitude, -jHat/magnitude, -kHat/magnitude);
-  }
+      return Quaternion(w, -x/magnitude, -y/magnitude, -z/magnitude);
+    }
 
-  Quaternion multiply_q(Quaternion q){
+    Quaternion operator*(const Quaternion& q) const {
+        return Quaternion(
+            w*q.w - x*q.x - y*q.y - z*q.z,
+            w*q.x + x*q.w + y*q.z - z*q.y,
+            w*q.y - x*q.z + y*q.w + z*q.x,
+            w*q.z + x*q.y - y*q.x + z*q.w
+        );
+    }
 
-    double w1 = realNum;  double w2 = q.realNum;
-    double x1 = iHat;     double x2 = q.iHat;
-    double y1 = jHat;     double y2 = q.jHat;
-    double z1 = kHat;     double z2 = q.kHat;
+    Quaternion conjugate() const {
+        return Quaternion(w, -x, -y, -z);
+    }
 
-    return Quaternion(
-      (w1*w2 - x1*x2 - y1*y2 - z1*z2),
-      (w1*x2 + x1*w2 + y1*z2 - z1*y2),
-      (w1*y2 - x1*z2 + y1*w2 + z1*x2),
-      (w1*z2 + x1*y2 - y1*x2 + z1*w2)
-    );
-  }
+    glm::vec3 rotate(const glm::vec3& v) const {
 
-   glm::vec3 rotateAxis(glm::vec3 vec){
-    Quaternion q = Quaternion(vec, 0);
-    Quaternion rotate = multiply_q(q).multiply_q(inverse());
-    return glm::vec3(rotate.iHat, rotate.jHat, rotate.kHat);
-  }
+        Quaternion p(0, v.x, v.y, v.z);
+
+        Quaternion result = (*this) * p * conjugate();
+
+        return glm::vec3(result.x, result.y, result.z);
+    }
+
+    Quaternion quaternionRotation(glm::vec3 axis, float theta){
+      float half_angle = (glm::radians(theta))/2;
+
+      float cos = glm::cos(half_angle);
+      float sin = glm::sin(half_angle);
+
+      axis = glm::normalize(axis);
+
+      return Quaternion(
+        cos,
+        sin * axis.x,
+        sin * axis.y,
+        sin * axis.z
+      );
+    }
+
+    Quaternion normalize(Quaternion q) {
+      double norm = sqrt(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w);
+      if (norm > 0.0001) {
+        return Quaternion(
+          q.w/norm,
+          q.x/norm,
+          q.y/norm,
+          q.z/norm
+        );
+      }
+
+      return Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+    }
 };
