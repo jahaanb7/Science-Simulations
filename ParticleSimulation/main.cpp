@@ -15,18 +15,17 @@
 #include <cstdlib>
 
 /*
-Particle Simulation:
-
-Each particle has intrinsic properties:
-    - mass, radius
-    - position, velocity
-    - gravitational acceleration
-
-Current Functionality:
-    - Particle Collision
-    - Gravity
-    - Collision Boundary
-*/
+ * Real-time 3D particle dynamics simulation.
+ *
+ * Each particle maintains mass, radius, position,
+ * and velocity. Motion is updated per-frame using
+ * delta-time integration with gravitational acceleration.
+ *
+ * Includes:
+ *  - Elastic particle-to-particle collision handling
+ *  - Sphere-boundary collision response
+ *  - Time-based spawning system
+ */
 
 // Screen Dimension variables
 const float WIDTH = 800.0f;
@@ -44,9 +43,6 @@ std::vector<float> spawnTimes;
 // Mouse Inputs
 double mouseX;
 double mouseY;
-
-double yaw = 0.0;
-double pitch = 0.0;
 
 double lastMouseX = WIDTH / 2.0;
 double lastMouseY = HEIGHT / 2.0;
@@ -130,24 +126,6 @@ void drawParticleArray2D(std::vector<Particle>& particles, float deltaTime){
     }
 }
 
-void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
-    for(int i = 0; i < particles.size(); i++){
-        // elapsedTime is for the time delay in drawing each particle
-        if(elapsedTime >= spawnTimes[i]){
-            particles[i].updatePosition3D(deltaTime);
-
-            // Detect collision for iteration i against iteration i + 1 (j)
-            for(int j = i+1; j < particles.size(); j++){
-                particles[i].Particle3DCollision(particles[j]);
-            }
-
-            // Boundary Sphere collision
-            particles[i].checkSphereCollision(400);
-
-            particles[i].drawParticle3D(10,10);
-        }
-    }
-}
 
 void CameraSystem(GLFWwindow* window){
     glfwGetCursorPos(window, &mouseX, &mouseY);
@@ -165,7 +143,6 @@ void CameraSystem(GLFWwindow* window){
     lastMouseX = mouseX;
     lastMouseY = mouseY;
 
-    // rotate delta
     cam.rotate(-deltaY * 50.0f, -deltaX * 50.0f);
 }
 
@@ -190,6 +167,36 @@ void MoveCamera(GLFWwindow* window, float deltaTime){
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
         cam.moveY(-moveSpeed);
 }
+
+void VerletIntegration(Particle3D& particle, float deltaTime){
+    particle.position += (particle.velocity * deltaTime) + (0.5f * particle.acceleration * deltaTime * deltaTime);
+
+    glm::vec3 oldAcceleration = particle.acceleration;
+
+    particle.acceleration = glm::vec3(0.0f, -98.1f, 0.0f);
+
+    particle.velocity += 0.5f * (oldAcceleration + particle.acceleration) * deltaTime; 
+}
+
+void drawParticleArray3D(std::vector<Particle3D>& particles, float deltaTime){
+    for(int i = 0; i < particles.size(); i++){
+        // elapsedTime is for the time delay in drawing each particle
+        if(elapsedTime >= spawnTimes[i]){
+            VerletIntegration(particles[i], deltaTime);
+
+            // Detect collision for iteration i against iteration i + 1 (j)
+            for(int j = i+1; j < particles.size(); j++){
+                particles[i].Particle3DCollision(particles[j]);
+            }
+
+            // Boundary Sphere collision
+            particles[i].checkSphereCollision(400);
+
+            particles[i].drawParticle3D(10,10);
+        }
+    }
+}
+
 int main(void)
 {
     // initialize glfw
@@ -239,11 +246,6 @@ int main(void)
     float directionX = magnitude*(cos(anglePhi)*cos(angleTheta));
     float directionY = magnitude*(sin(anglePhi)*sin(angleTheta));
     float directionZ = magnitude*(sin(angleTheta));
-
-    // set a positional value to velocity
-    float velocityX = 0.0f;
-    float velocityY = -200.0f;
-    float velocityZ = 0.0f;
 
     glm::vec3 velocity = glm::vec3(directionX, directionY, directionZ);
 

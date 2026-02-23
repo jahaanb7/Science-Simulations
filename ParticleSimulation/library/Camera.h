@@ -15,6 +15,10 @@ class Camera{
     glm::vec3 jHat;
     glm::vec3 kHat;
 
+    //clamping rotation variables
+    double currentPitch = 0.0;
+    double currentYaw = 0.0;
+
     Camera(double x, double y, double z, double cameraSpeed){
       camPosition = glm::vec3(x,y,z);
       camSpeed = cameraSpeed;
@@ -49,15 +53,21 @@ class Camera{
 
     void rotate(double pitch, double yaw){
 
+      currentPitch += pitch;
+      currentYaw   += yaw;
+
+      if (currentPitch > 89.0){currentPitch = 89.0;}
+      if (currentPitch < -89.0){currentPitch = -89.0;}
+
+      if (currentYaw > 359.0)  currentYaw -= 359.0;
+      if (currentYaw < -359.0) currentYaw += 359.0;
+    
       //create the rotations as quaternions
-      Quaternion pitchQ = Quaternion::quaternionRotation(iHat, pitch);
-      Quaternion yawQ   = Quaternion::quaternionRotation(jHat, yaw);
+      Quaternion pitchQ = Quaternion::quaternionRotation(glm::vec3(1.0f, 0.0f, 0.0f), currentPitch);
+      Quaternion yawQ   = Quaternion::quaternionRotation(glm::vec3(0.0f, 1.0f, 0.0f), currentYaw);
       
       //apply yaw then pitch
-      Quaternion rotation = yawQ*pitchQ;
-      
-      //apply that to the camera
-      orientation = rotation*orientation;
+      orientation = yawQ * pitchQ;
       orientation.normalize();
       
       updateCam();
