@@ -3,6 +3,11 @@ project(ParticleSimulation)
 
 set(CMAKE_CXX_STANDARD 17)
 
+# Define M_PI on Windows (MSVC doesn't include it by default)
+if(MSVC)
+    add_compile_definitions(_USE_MATH_DEFINES)
+endif()
+
 add_executable(ParticleSimulation
     main.cpp
     glad.c
