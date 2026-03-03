@@ -1,0 +1,71 @@
+name: Build ParticleSimulation
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+
+          # ── macOS ──────────────────────────────────────────────────────────
+          - os: macos-latest
+            name: macOS
+            install: brew install glfw
+            cmake_flags: ""
+            artifact_path: build/ParticleSimulation
+            artifact_name: ParticleSimulation-macOS
+
+          # ── Linux ──────────────────────────────────────────────────────────
+          - os: ubuntu-latest
+            name: Linux
+            install: |
+              sudo apt-get update
+              sudo apt-get install -y \
+                libglfw3-dev \
+                libgl1-mesa-dev \
+                libglu1-mesa-dev \
+                xorg-dev
+            cmake_flags: ""
+            artifact_path: build/ParticleSimulation
+            artifact_name: ParticleSimulation-Linux
+
+          # ── Windows ────────────────────────────────────────────────────────
+          - os: windows-latest
+            name: Windows
+            install: vcpkg install glfw3:x64-windows
+            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+            artifact_path: build/Release/ParticleSimulation.exe
+            artifact_name: ParticleSimulation-Windows
+
+    runs-on: ${{ matrix.os }}
+    name: Build on ${{ matrix.name }}
+
+    steps:
+      # 1 — Checkout the full repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2 — Install dependencies
+      - name: Install dependencies
+        run: ${{ matrix.install }}
+
+      # 3 — Configure with CMake
+      - name: Configure CMake
+        run: |
+          cmake -S ParticleSimulation -B build ${{ matrix.cmake_flags }}
+
+      # 4 — Build
+      - name: Build
+        run: cmake --build build --config Release
+
+      # 5 — Upload the executable as a downloadable artifact
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
+          if-no-files-found: error
