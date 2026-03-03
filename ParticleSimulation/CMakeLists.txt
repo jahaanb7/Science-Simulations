@@ -10,6 +10,7 @@ add_executable(ParticleSimulation
 
 target_include_directories(ParticleSimulation PRIVATE
     library
+    ../dependencies/include
 )
 
 # ── OpenGL ────────────────────────────────────────────────────────────────────
