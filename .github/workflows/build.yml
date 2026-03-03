@@ -3,7 +3,7 @@ name: Build ParticleSimulation
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:  # allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   build:
@@ -14,30 +14,18 @@ jobs:
           # ── macOS ──────────────────────────────────────────────────────────
           - os: macos-latest
             name: macOS
-            install: brew install glfw
-            cmake_flags: ""
             artifact_path: build/ParticleSimulation
             artifact_name: ParticleSimulation-macOS
 
           # ── Linux ──────────────────────────────────────────────────────────
           - os: ubuntu-latest
             name: Linux
-            install: |
-              sudo apt-get update
-              sudo apt-get install -y \
-                libglfw3-dev \
-                libgl1-mesa-dev \
-                libglu1-mesa-dev \
-                xorg-dev
-            cmake_flags: ""
             artifact_path: build/ParticleSimulation
             artifact_name: ParticleSimulation-Linux
 
           # ── Windows ────────────────────────────────────────────────────────
           - os: windows-latest
             name: Windows
-            install: vcpkg install glfw3:x64-windows
-            cmake_flags: "-DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
             artifact_path: build/Release/ParticleSimulation.exe
             artifact_name: ParticleSimulation-Windows
 
@@ -45,24 +33,49 @@ jobs:
     name: Build on ${{ matrix.name }}
 
     steps:
-      # 1 — Checkout the full repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2 — Install dependencies
-      - name: Install dependencies
-        run: ${{ matrix.install }}
+      # ── macOS dependencies ─────────────────────────────────────────────────
+      - name: Install dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install glfw glm
 
-      # 3 — Configure with CMake
-      - name: Configure CMake
+      # ── Linux dependencies ─────────────────────────────────────────────────
+      - name: Install dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
         run: |
-          cmake -S ParticleSimulation -B build ${{ matrix.cmake_flags }}
+          sudo apt-get update
+          sudo apt-get install -y \
+            libglfw3-dev \
+            libglm-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            xorg-dev
 
-      # 4 — Build
+      # ── Windows dependencies ───────────────────────────────────────────────
+      - name: Install dependencies (Windows)
+        if: matrix.os == 'windows-latest'
+        run: vcpkg install glfw3:x64-windows glm:x64-windows
+
+      # ── Configure CMake (macOS + Linux) ───────────────────────────────────
+      - name: Configure CMake (macOS/Linux)
+        if: matrix.os != 'windows-latest'
+        run: cmake -S ParticleSimulation -B build
+
+      # ── Configure CMake (Windows) ──────────────────────────────────────────
+      - name: Configure CMake (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cmake -S ParticleSimulation -B build `
+            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
+            -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build --config Release
 
-      # 5 — Upload the executable as a downloadable artifact
+      # ── Upload artifact ────────────────────────────────────────────────────
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
