@@ -46,6 +46,10 @@ jobs:
             libglu1-mesa-dev \
             xorg-dev
 
+      # ── Ensure clean build dir ─────────────────────────────────────────────
+      - name: Remove stale build directory
+        run: cmake -E rm -rf build
+
       # ── Configure CMake ────────────────────────────────────────────────────
       - name: Configure CMake
         run: cmake -S ParticleSimulation -B build -DPARTICLE_ALLOW_FETCH_DEPS=ON
