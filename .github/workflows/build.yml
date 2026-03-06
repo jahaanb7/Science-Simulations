@@ -36,40 +36,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── macOS dependencies ─────────────────────────────────────────────────
-      - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install glfw glm
-
       # ── Linux dependencies ─────────────────────────────────────────────────
       - name: Install dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libglfw3-dev \
-            libglm-dev \
             libgl1-mesa-dev \
             libglu1-mesa-dev \
             xorg-dev
 
-      # ── Windows dependencies ───────────────────────────────────────────────
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: vcpkg install glfw3:x64-windows glm:x64-windows
-
-      # ── Configure CMake (macOS + Linux) ───────────────────────────────────
-      - name: Configure CMake (macOS/Linux)
-        if: matrix.os != 'windows-latest'
-        run: cmake -S ParticleSimulation -B build
-
-      # ── Configure CMake (Windows) ──────────────────────────────────────────
-      - name: Configure CMake (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cmake -S ParticleSimulation -B build `
-            -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
-            -DVCPKG_TARGET_TRIPLET=x64-windows
+      # ── Configure CMake ────────────────────────────────────────────────────
+      - name: Configure CMake
+        run: cmake -S ParticleSimulation -B build -DPARTICLE_ALLOW_FETCH_DEPS=ON
 
       # ── Build ──────────────────────────────────────────────────────────────
       - name: Build

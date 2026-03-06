@@ -1,69 +1,35 @@
-# Particle Simulation to Learn C++ and OpenGL
+# Particle Simulation
 
-A simple real-time 3D particle simulation built with C++, OpenGL, GLFW, GLAD, and GLM.
-
----
+Real-time 3D particle simulation built with C++, OpenGL, GLFW, GLAD, and GLM.
 
 ## Features
 
-- 3D particles with mass and radius  
-- Velocity Verlet integration  
-- Inverse-square gravity  
-- Elastic particle collisions  
-- Boundary sphere containment  
-- Free-look camera  
+- 3D particles with mass and radius
+- Velocity Verlet integration
+- Inverse-square gravity
+- Elastic particle collisions
+- Boundary sphere containment
+- Free-look camera
 
----
+## Cross-Platform Demo
 
-## Project Structure
+The project now supports macOS, Linux, and Windows with a one-command demo flow.
 
-ParticleSimulation/
-├── main.cpp
-├── library/
-│   ├── Particle.h
-│   ├── Particle3D.h
-│   ├── Camera.h
-│   └── Render.h
-├── output/
-└── app/
+### Usage
 
----
+From the repository root:
 
-## Physics
+- macOS/Linux:
+  - `./scripts/demo.sh`
+- Windows (PowerShell):
+  - `./scripts/demo.ps1`
 
-Position update:
-x = x + v·dt + 0.5a·dt²  
+## GitHub Actions Artifacts
 
-Velocity update:
-v = v + 0.5(a_old + a_new)·dt  
+The CI workflow builds binaries for all three operating systems and publishes artifacts:
 
-Gravity:
-a = G / r²
+- `ParticleSimulation-macOS`
+- `ParticleSimulation-Linux`
+- `ParticleSimulation-Windows`
 
----
-
-## Requirements
-
-- C++17+
-- OpenGL
-- GLFW
-- GLAD
-- GLM
-
----
-
-## How to Run
-
-git clone https://github.com/jahaanb7/Space-Simulation.git  
-cd ParticleSimulation  
-mkdir build  
-cd build  
-cmake ..  
-make  
-./simulation  
-
----
-
-## Purpose
-
-Built as a learning project for real-time physics simulation and 3D graphics programming.
+Anyone can download the latest successful workflow artifacts from the Actions tab and run the executable for their OS.

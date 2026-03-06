@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/ParticleSimulation.dir/main.cpp.o CMakeFiles/ParticleSimulation.dir/glad.c.o -o ParticleSimulation  -Wl,-rpath,/opt/homebrew/lib -framework OpenGL /opt/homebrew/lib/libglfw.3.4.dylib /opt/homebrew/lib/libglm.dylib -framework Cocoa -framework IOKit -framework CoreVideo
